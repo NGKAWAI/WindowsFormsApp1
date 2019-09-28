@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Data.SqlClient;
+using MySql.Data.MySqlClient;
 
 namespace WindowsFormsApp1
 {
@@ -30,9 +31,10 @@ namespace WindowsFormsApp1
 
         private void button1_Click(object sender, EventArgs e)
         {
-            
-            SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\Gapwai\Documents\Data.mdf;Integrated Security=True;Connect Timeout=30");
-            SqlDataAdapter sda = new SqlDataAdapter("Select Count(*) From [dbo].[Table] where ID='" + textBox1.Text + "' and PW = '" + textBox2.Text + "'", con);
+
+            string connectionStr = "server=127.0.0.1;port=3307;database=data;uid=root;pwd=123456;";
+            MySqlConnection con = new MySqlConnection(connectionStr);
+            MySqlDataAdapter sda = new MySqlDataAdapter("SELECT Count(*) FROM `table`where id='" + textBox1.Text + "' and pw = '" + textBox2.Text + "'", con);
             DataTable dt = new DataTable();
             sda.Fill(dt);
             if (dt.Rows[0][0].ToString() == "1")
@@ -49,6 +51,17 @@ namespace WindowsFormsApp1
             {
                 MessageBox.Show("please Check you Username and Password");
             }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            string name = textBox1.Text;
+            string totalstring = name;
+            Form8 ss = new Form8();
+            ss.strr = totalstring;
+            this.Hide();
+
+            ss.Show();
         }
     }
 }

@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Data.SqlClient;
 using System.IO;
 using System.Drawing.Imaging;
+using MySql.Data.MySqlClient;
 
 namespace WindowsFormsApp1
 {
@@ -31,12 +32,11 @@ namespace WindowsFormsApp1
 
         private void Form2_Load(object sender, EventArgs e)
         {
-            // TODO: 這行程式碼會將資料載入 'dataDataSet.personal' 資料表。您可以視需要進行移動或移除。
-            this.personalTableAdapter.Fill(this.dataDataSet.personal);
-
-            SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\Gapwai\source\repos\WindowsFormsApp1\WindowsFormsApp1\Data.mdf;Integrated Security=True;Connect Timeout=30");
-            SqlDataAdapter sda = new SqlDataAdapter("Select id,PW From [dbo].[table] where id='wayne'", con);
-            SqlDataAdapter count = new SqlDataAdapter("SELECT count(*) FROM [dbo].[personal] where  inoutside='true' and 床號 is not NULL", con);
+         
+            string connectionStr = "server=127.0.0.1;port=3307;database=data;uid=root;pwd=123456;";
+            MySqlConnection con = new MySqlConnection(connectionStr);
+            MySqlDataAdapter sda = new MySqlDataAdapter("Select id,PW From `table` where id='wayne'", con);
+            MySqlDataAdapter count = new MySqlDataAdapter("SELECT count(*) FROM `personal` where  inoutside=true and 床號 is not NULL", con);
             DataTable di = new DataTable();
 
             DataTable ct = new DataTable();
@@ -46,14 +46,13 @@ namespace WindowsFormsApp1
             int x = 1;
             int a = Convert.ToInt32(ct.Rows[0][0].ToString());
             string b = Convert.ToString(a);
-            label2.Text = ct.Rows[0][0].ToString();
             //
             while (x < 32) {
-                SqlDataAdapter lB = new SqlDataAdapter("SELECT count(*) FROM dbo.personal where inoutside='true' and 床號='" + x + "'", con);
+                MySqlDataAdapter lB = new MySqlDataAdapter("SELECT count(*) FROM `personal` where inoutside=true and 床號='" + x + "'", con);
                 DataTable dl = new DataTable();
                 lB.Fill(dl);
                 if (dl.Rows[0][0].ToString() == "1") {
-                    SqlDataAdapter lBB = new SqlDataAdapter("SELECT cast([床號] as nvarchar)+':'+[名子] as Username FROM dbo.personal where inoutside='true' and 床號='" + x + "'", con);
+                    MySqlDataAdapter lBB = new MySqlDataAdapter("SELECT CONCAT(床號,':',名子) FROM `personal` where inoutside=true and 床號='" + x + "'", con);
                     DataTable dll = new DataTable();
                     lBB.Fill(dll);
                     listBox2.Items.Add(dll.Rows[0][0].ToString());
@@ -92,59 +91,82 @@ namespace WindowsFormsApp1
 
         private void button1_Click(object sender, EventArgs e)
         {
-
-            SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\Gapwai\Documents\Data.mdf;Integrated Security=True;Connect Timeout=30");
+            string connectionStr = "server=127.0.0.1;port=3307;database=data;uid=root;pwd=123456;";
+            MySqlConnection con = new MySqlConnection(connectionStr);
             string boyorgril = "";
             if (boyRB.Checked) boyorgril += boyRB.Text;
             if (girlRB.Checked) boyorgril += girlRB.Text;
             //SqlDataAdapter mkt = new SqlDataAdapter("Select count(*) From [dbo].[table] where 身份証", con);
-
-            if (MessageBox.Show("姓名=" + textBox1.Text + "\n" + "性別=" + boyorgril + "\n" + "出生日期 =" + dateTimePicker1.Value.ToString("MM/dd/yyyy") +
+            MySqlDataAdapter lA = new MySqlDataAdapter("SELECT count(*) FROM `personal` where inoutside=true and 床號='" + textBox2.Text + "'", con);
+            DataTable dA = new DataTable();
+            lA.Fill(dA);
+            if (dA.Rows[0][0].ToString() != "1")
+            {
+                if (MessageBox.Show("姓名=" + textBox1.Text + "\n" + "性別=" + boyorgril + "\n" + "出生日期 =" + dateTimePicker1.Value.ToString("MM/dd/yyyy") +
                 "\n" + "身份証 =" + maskedTextBox3.Text + "\n" + "電話 =" + textBox6.Text + "\n" + "入院日期 =" + dateTimePicker2.Value.ToString("MM/dd/yyyy") +
                  "\n" + "國籍 =" + textBox8.Text + "\n" + "緊急電話 =" + textBox10.Text + "\n" + "地址 =" + textBox7.Text + textBox9.Text, "是否正確", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+
+
+                    con.Open();
+                    MySqlDataAdapter cou = new MySqlDataAdapter("Select count(id) From `personal`", con);
+                    DataTable dc = new DataTable();
+                    cou.Fill(dc);
+                    int a = 0;
+                    if (dc.Rows[0][0].ToString() == "1")
+                    {
+                        MySqlDataAdapter sda = new MySqlDataAdapter("Select max(id) From `personal`", con);
+                        DataTable dt = new DataTable();
+                        sda.Fill(dt);
+                        a = Convert.ToInt32(dt.Rows[0][0].ToString());
+                    }
+                    else
+                    {
+                        a = 0;
+                    }
+
+                    MySqlDataAdapter ads = new MySqlDataAdapter("Select id,PW From `table` where id='wayne'", con);
+                    DataTable di = new DataTable();
+                    ads.Fill(di);
+
+                    string b = Convert.ToString(a + 1);
+
+                    string sql = "INSERT INTO `personal`(ID,名子,性別,出生日期,身份証,電話,入院日期,國籍,緊急電話,床號,地址,經手人)" +
+                        " VALUES ('" + b + "',N'" + textBox1.Text + "',N'" + boyorgril + "','" + dateTimePicker1.Value.ToString("yyyy-MM-dd") + "','" + maskedTextBox3.Text + "','" + textBox6.Text + "','" + dateTimePicker2.Value.ToString("yyyy-MM-dd") + "',N'" + textBox8.Text + "','" + textBox10.Text + "','" + textBox2.Text + "',N'" + textBox7.Text + textBox9.Text + "','" + strr + "')";
+                    MySqlCommand cmd = new MySqlCommand(sql, con);
+                    string sqlpt = "select count(*) from `MySchool` where BLODID=" + maskedTextBox3.Text + " ";
+                    MySqlDataAdapter pt = new MySqlDataAdapter(sqlpt, con);
+                    DataTable dt2 = new DataTable();
+                    pt.Fill(dt2);
+                    if (dt2.Rows[0][0].ToString() == "0")
+                    {
+                        string sqlpt2 = "insert into `MySchool` (BLODID) values (" + maskedTextBox3.Text + ")";
+                        MySqlCommand cmdpt = new MySqlCommand(sqlpt2, con);
+                        cmdpt.ExecuteNonQuery();
+
+                    }
+                    //院友號碼= b;
+                    //姓名=textBox1.Text;
+                    //性別= boyorgril;
+                    //出生日期=dateTimePicker1.Value.ToString("MM/dd/yyyy");
+                    //"身份証 ="+ maskedTextBox3.Text+;
+                    //"電話 ="+textBox6.Text+;
+                    //"入院日期 ="+dateTimePicker2.Value.ToString("MM/dd/yyyy")+;
+                    //"國籍 ="+textBox8.Text+;
+                    //"緊急電話 ="+textBox10.Text+;
+                    //床號= textBox2.Text;
+                    //"地址 ="+textBox7.Text+ textBox9.Text;
+                    //經手人 = strr;
+                    //相片 = textBox6.Text;
+                    cmd.ExecuteNonQuery();
+
+                    // cmd.Dispose();
+                    con.Close();
+                }
+            }
+            else
             {
-
-
-                con.Open();
-                SqlDataAdapter sda = new SqlDataAdapter("Select MAX (ID) From [dbo].[personal]", con);
-                SqlDataAdapter ads = new SqlDataAdapter("Select id,PW From [dbo].[table] where id='wayne'", con);
-                DataTable dt = new DataTable();
-                DataTable di = new DataTable();
-                sda.Fill(dt);
-                ads.Fill(di);
-
-                int a;
-
-                if (dt.Rows[0][0].ToString() == "1")
-                {
-                    a = Convert.ToInt32(dt.Rows[0][0].ToString());
-                }
-                else
-                {
-                    a = 0;
-                }
-                string b = Convert.ToString(a + 1);
-
-                label2.Text = di.Rows[0][1].ToString();
-                string sql = "INSERT INTO [dbo].[personal](ID,名子,性別,出生日期,身份証,電話,入院日期,國籍,緊急電話,床號,地址,經手人)" +
-                    " VALUES ('" + b + "',N'" + textBox1.Text + "',N'" + boyorgril + "','" + dateTimePicker1.Value.ToString("MM/dd/yyyy") + "','" + maskedTextBox3.Text + "','" + textBox6.Text + "','" + dateTimePicker2.Value.ToString("MM/dd/yyyy") + "',N'" + textBox8.Text + "','" + textBox10.Text + "','" + textBox2.Text + "',N'" + textBox7.Text + textBox9.Text + "','" + strr + "')";
-                SqlCommand cmd = new SqlCommand(sql, con);
-                //院友號碼= b;
-                //姓名=textBox1.Text;
-                //性別= boyorgril;
-                //出生日期=dateTimePicker1.Value.ToString("MM/dd/yyyy");
-                //"身份証 ="+ maskedTextBox3.Text+;
-                //"電話 ="+textBox6.Text+;
-                //"入院日期 ="+dateTimePicker2.Value.ToString("MM/dd/yyyy")+;
-                //"國籍 ="+textBox8.Text+;
-                //"緊急電話 ="+textBox10.Text+;
-                //床號= textBox2.Text;
-                //"地址 ="+textBox7.Text+ textBox9.Text;
-                //經手人 = strr;
-                //相片 = textBox6.Text;
-                cmd.ExecuteNonQuery();
-                // cmd.Dispose();
-                con.Close();
+                MessageBox.Show("這個床位已經有人");
             }
 
 
@@ -177,10 +199,11 @@ namespace WindowsFormsApp1
         {
             try
             {
-                SqlConnection connection = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\Gapwai\source\repos\WindowsFormsApp1\WindowsFormsApp1\Data.mdf;Integrated Security=True;Connect Timeout=30");
+                string connectionStr = "server=127.0.0.1;port=3307;database=data;uid=root;pwd=123456;";
+                MySqlConnection connection = new MySqlConnection(connectionStr);
                 OpenFileDialog fileDialog = new OpenFileDialog();
-                string sql = "insert into [dbo].[MySchool] (BLODID,BLOBData) values (@BLODID,@blobdata)";
-                SqlCommand command = new SqlCommand(sql, connection);
+                string sql = "insert into `MySchool` (BLODID,BLOBData) values (@BLODID,@blobdata)";
+                MySqlCommand command = new MySqlCommand(sql, connection);
                 fileDialog.Multiselect = true;
                 fileDialog.Title = "请选择文件";
                 fileDialog.Filter = "Image Files(*.JPG;*.PNG;*.jpeg;*.GIF;*.BMP)|*.JPG;*.PNG;*.GIF;*.BMP;*.jpeg|All files(*.*)|*.*";
@@ -195,24 +218,25 @@ namespace WindowsFormsApp1
                     fs.Read(mybyte, 0, mybyte.Length);
                     fs.Close();
                     //轉換成二進位制資料，並儲存到資料庫
-                    SqlParameter prm = new SqlParameter
-                    ("@blobdata", SqlDbType.VarBinary, mybyte.Length, ParameterDirection.Input, false, 0, 0, null, DataRowVersion.Current, mybyte);
+                    //MSqlDbType.VarBinary
+                    MySqlParameter prm = new MySqlParameter
+                    ("@blobdata",MySqlDbType.VarBinary, mybyte.Length, ParameterDirection.Input, false, 0, 0, null, DataRowVersion.Current, mybyte);
                     if (maskedTextBox3.Text == "")
                     {
                         MessageBox.Show("請先填寫左邊資料");
                     }
                     else {
-                        command.Parameters.Add("@BLODID", SqlDbType.Int).Value = Convert.ToInt32(maskedTextBox3.Text);
+                        command.Parameters.Add("@BLODID", MySqlDbType.Int32).Value = Convert.ToInt32(maskedTextBox3.Text);
                         command.Parameters.Add(prm);
                         //開啟資料庫連線
                         connection.Open();
                         command.ExecuteNonQuery();
                         //建立SQL語句
-                        string sql1 = "select BLODID,BLOBData from [dbo].[MySchool] where BLODID=" + maskedTextBox3.Text + " ";
+                        string sql1 = "select BLODID,BLOBData from `MySchool` where BLODID=" + maskedTextBox3.Text + " ";
                         //建立SqlCommand物件
-                        SqlCommand command1 = new SqlCommand(sql1, connection);
+                        MySqlCommand command1 = new MySqlCommand(sql1, connection);
                         //建立DataAdapter物件
-                        SqlDataAdapter dataAdapter = new SqlDataAdapter(command1);
+                        MySqlDataAdapter dataAdapter = new MySqlDataAdapter(command1);
                         //建立DataSet物件
                         DataSet dataSet = new DataSet();
                         dataAdapter.Fill(dataSet, "BLOBTest");
@@ -245,15 +269,16 @@ namespace WindowsFormsApp1
         {
             try
             {
-                SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\Gapwai\source\repos\WindowsFormsApp1\WindowsFormsApp1\Data.mdf;Integrated Security=True;Connect Timeout=30");
+                string connectionStr = "server=127.0.0.1;port=3307;database=data;uid=root;pwd=123456;";
+                MySqlConnection con = new MySqlConnection(connectionStr);
                 con.Open();
                 if (maskedTextBox3.Text == "")
                 {
                     MessageBox.Show("請先填寫左邊資料");
                 }
                 else {
-                    string sql = "DELETE FROM [dbo].[MySchool]WHERE BLODID=" + maskedTextBox3.Text + " ";
-                    SqlCommand cmd = new SqlCommand(sql, con);
+                    string sql = "DELETE FROM `MySchool` WHERE BLODID=" + maskedTextBox3.Text + " ";
+                    MySqlCommand cmd = new MySqlCommand(sql, con);
                     cmd.ExecuteNonQuery();
                     pictureBox1.Image = null;
                     pictureBox1.Refresh();
@@ -265,6 +290,12 @@ namespace WindowsFormsApp1
             {
                 MessageBox.Show(ex.Message);
             }
+        }
+
+        private void listBox2_MouseClick(object sender, MouseEventArgs e)
+        {
+            int index = listBox2.IndexFromPoint(e.X, e.Y);
+            textBox2.Text = Convert.ToString(index+1);
         }
     }
 }
